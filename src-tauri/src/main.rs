@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod evaluator;
+mod variables;
 
 #[tauri::command]
 fn compute(content: &str) -> String

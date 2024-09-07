@@ -1,6 +1,7 @@
 :root {
   --bg-color: #fdfdfd;
   --fg-color: #0f0f0f;
+  --fg-hight-color: #488c34;
 }
 
 :root
@@ -27,8 +28,9 @@
 
 .calcul
 {
-  font-family: Menlo;
-  font-size: 14px;
+  font-family: Menlo, monospace;
+  font-weight: 700;
+  font-size: 15px;
   line-height: 1.7;
 
   padding: 0;
@@ -66,7 +68,7 @@
 
   text-align: right;
 
-  color: var(--fg-color);
+  color: var(--fg-hight-color);
   background-color: var(--bg-color);
 }
 
@@ -76,5 +78,6 @@
   {
     --bg-color: #1f1f24;
     --fg-color: #f6f6f6;
+    --fg-hight-color: #6dd153;
   }
 }

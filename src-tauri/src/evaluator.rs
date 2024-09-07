@@ -1,13 +1,9 @@
-use std::collections::{VecDeque, HashMap};
-use std::sync::Mutex;
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref VARIABLES: Mutex<HashMap<String, f64>> = Mutex::new(HashMap::new());
-}
+use std::collections::VecDeque;
+use crate::variables::{VARIABLES, reset_variables};
 
 pub fn compute(content: &str) -> String
 {
+    reset_variables();
     let uniform_content = content.replace("</div><div>", "<div>").replace("</div>", "<div>");
     let line_array: Vec<String> = uniform_content.split("<div>").map(|s| s.to_string()).collect();
 
@@ -92,14 +88,6 @@ fn parse_variable_declaration(expression: &str) -> Option<(&str, &str)>
 
 fn tokenize(expression: &str) -> Result<Vec<String>, String>
 {
-    let constants: HashMap<String, f64> = HashMap::from([
-        ("e".to_string(), std::f64::consts::E),
-        ("pi".to_string(), std::f64::consts::PI),
-        ("E".to_string(), std::f64::consts::E),
-        ("PI".to_string(), std::f64::consts::PI),
-        ("phi".to_string(), (1.0 + 5.0_f64.sqrt()) / 2.0),
-        ("PHI".to_string(), (1.0 + 5.0_f64.sqrt()) / 2.0),
-    ]);
     let mut tokens = Vec::new();
     let mut num_buf = String::new();
     let mut i = 0;
@@ -125,40 +113,24 @@ fn tokenize(expression: &str) -> Result<Vec<String>, String>
                 tokens.push(num_buf.clone());
                 num_buf.clear();
             }
-
-            let mut found_constant = false;
-            for (key, &value) in &constants
+            let var_name = read_variable_name(&chars, i);
+            if let Some(var_name) = var_name
             {
-                if expression[i..].starts_with(key)
+                let vars = VARIABLES.lock().unwrap();
+                if let Some(&value) = vars.get(&var_name)
                 {
                     tokens.push(value.to_string());
-                    i += key.len();
-                    found_constant = true;
-                    break;
                 }
-            }
-
-            if !found_constant
-            {
-                let var_name = read_variable_name(&chars, i);
-                if let Some(var_name) = var_name
+                else
                 {
-                    let vars = VARIABLES.lock().unwrap();
-                    if let Some(&value) = vars.get(&var_name)
-                    {
-                        tokens.push(value.to_string());
-                    }
-                    else
-                    {
-                        tokens.push(var_name.clone());
-                    }
-                    i += var_name.len();
-                    continue;
+                    tokens.push(var_name.clone());
                 }
-
-                tokens.push(c.to_string());
-                i += 1;
+                i += var_name.len();
+                continue;
             }
+
+            tokens.push(c.to_string());
+            i += 1;
         }
     }
 
@@ -197,6 +169,7 @@ fn shunting_yard(tokens: &[String]) -> Result<Vec<String>, String>
         {
             "+" | "-" => 1,
             "*" | "/" => 2,
+            "^" => 3,
             _ => 0,
         }
     };
@@ -207,7 +180,7 @@ fn shunting_yard(tokens: &[String]) -> Result<Vec<String>, String>
         {
             output.push(token.clone());
         }
-        else if ["+", "-", "*", "/"].contains(&token.as_str())
+        else if ["+", "-", "*", "/", "^"].contains(&token.as_str())
         {
             while let Some(top_op) = operators.last()
             {
@@ -274,6 +247,7 @@ fn evaluate_rpn(rpn: &[String]) -> Result<f64, String>
                 "-" => a - b,
                 "*" => a * b,
                 "/" => a / b,
+                "^" => a.powf(b),
                 _ => return Err(format!("Unknown operator: {}", token)),
             };
             stack.push_back(result);
