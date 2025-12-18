@@ -1,2 +1,1 @@
-# Calculatrice
-Tauri + Vanilla
+
